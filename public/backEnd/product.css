@@ -1,0 +1,29 @@
+.increment_btn,
+.remove_btn {
+    margin-top: -17px;
+    margin-bottom: 10px;
+}
+
+/* Product description styling */
+.product-description {
+    white-space: pre-line; /* preserves line breaks */
+    word-wrap: break-word; /* breaks long words */
+    overflow-wrap: break-word; /* breaks long words */
+    line-height: 1.6; /* readable line height */
+}
+
+.product-description img {
+    max-width: 100%; /* prevents image overflow */
+    height: auto;
+}
+
+.product-description table {
+    width: 100%; /* ensures tables don’t overflow */
+    border-collapse: collapse;
+}
+
+.product-description table,
+.product-description th,
+.product-description td {
+    border: 1px solid #ddd; /* optional table border */
+}

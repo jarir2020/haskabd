@@ -1,0 +1,65 @@
+.product-description {
+    line-height: 1.6;               /* readable line height */
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+/* Make inner <p> inside li inline so bullet and text stay on same line */
+.product-description li > p {
+    display: inline;
+    margin: 0;
+    padding: 0;
+}
+
+
+/* Paragraphs */
+.product-description p {
+    margin: 0 0 10px 0;             /* gap between paragraphs */
+}
+
+/* Images */
+.product-description img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Tables */
+.product-description table {
+    width: 100%;                     /* ensures tables don’t overflow */
+    border-collapse: collapse;
+    margin-bottom: 10px;
+}
+
+.product-description table,
+.product-description th,
+.product-description td {
+    border: 1px solid #ddd;          /* optional table border */
+    padding: 5px;
+}
+
+/* Lists (ul, ol) */
+.product-description ul,
+.product-description ol {
+    margin: 0 0 10px 20px;           /* proper spacing for bullets */
+    padding: 0;
+}
+
+.product-description li {
+    margin-bottom: 5px;
+    list-style-position: inside;     /* bullet inline with text */
+}
+
+/* Override inline styles from GPT copy-paste */
+.product-description ul[style],
+.product-description ol[style],
+.product-description li[style] {
+    margin: 0 0 5px 20px !important;
+    padding: 0 !important;
+    list-style-position: inside !important;
+}
+
+/* Optional: handle GPT paste with <div style="margin:..."> */
+.product-description div[style] {
+    margin: 0 0 10px 0 !important;
+    padding: 0 !important;
+}
+

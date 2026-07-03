@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(sc query MySQL84 2>&1)",
+      "PowerShell(head -20)",
+      "Bash(Get-ChildItem -Path \"d:\\\\laragon\\\\www\\\\ecommerce3\\\\public\\\\backEnd\\\\assets\\\\libs\" -Directory)",
+      "Bash(Select-Object -ExpandProperty Name)",
+      "PowerShell(Get-ChildItem -Path \"d:\\\\laragon\\\\www\\\\ecommerce3\\\\public\\\\cdn\" | Select-Object Name, @{Name=\"Type\"; Expression={if\\($_.PSIsContainer\\) {\"Folder\"} else {\"File\"}}})",
+      "Bash(composer require *)",
+      "Bash(Get-ChildItem -Path \"d:\\\\laragon\\\\www\\\\ecommerce3\" -Recurse -Filter \"Banner.php\")",
+      "Bash(powershell -Command \"Get-ChildItem database\\\\migrations -Filter '*banner*' -File\")",
+      "Bash(New-Item -ItemType Directory -Path \"d:\\\\laragon\\\\www\\\\ecommerce3\\\\resources\\\\views\\\\backEnd\\\\customerReview\" -Force)",
+      "PowerShell(New-Item -ItemType Directory -Path \"d:\\\\laragon\\\\www\\\\ecommerce3\\\\resources\\\\views\\\\backEnd\\\\customerReview\" -Force)"
+    ]
+  }
+}
