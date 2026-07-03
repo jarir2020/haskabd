@@ -82,8 +82,9 @@ jobs:
 
       - name: Create deployment archive
         run: |
-          ARCHIVE="${{ github.workspace }}/haskabd-deploy.tar.gz"
-          tar -czf "$ARCHIVE" \
+          TMP_ARCHIVE="/tmp/haskabd-deploy.tar.gz"
+          DEPLOY_ARCHIVE="${{ github.workspace }}/haskabd-deploy.tar.gz"
+          tar -czf "$TMP_ARCHIVE" \
             --exclude=vendor \
             --exclude=node_modules \
             --exclude=.git \
@@ -96,10 +97,10 @@ jobs:
             --exclude=storage/framework/cache \
             --exclude=storage/framework/sessions \
             --exclude=storage/framework/views \
-            --exclude=haskabd-deploy.tar.gz \
             -C "${{ github.workspace }}" \
             .
-          ls -lh "$ARCHIVE"
+          cp "$TMP_ARCHIVE" "$DEPLOY_ARCHIVE"
+          ls -lh "$DEPLOY_ARCHIVE"
 
       - name: Upload archive to server
         uses: appleboy/scp-action@v0.1.7
