@@ -58,20 +58,23 @@ jobs:
 
       - name: Create deployment archive
         run: |
-          tar -czf deploy.tar.gz \
-            --exclude=./vendor \
-            --exclude=./node_modules \
-            --exclude=./.git \
-            --exclude=./.github \
-            --exclude=./.env \
-            --exclude=./.sshkeys \
-            --exclude=./admin-login.txt \
-            --exclude=./database/backup \
-            --exclude=./storage/logs \
-            --exclude=./storage/framework/cache \
-            --exclude=./storage/framework/sessions \
-            --exclude=./storage/framework/views \
+          ARCHIVE="/tmp/haskabd-deploy.tar.gz"
+          tar -czf "$ARCHIVE" \
+            --exclude=vendor \
+            --exclude=node_modules \
+            --exclude=.git \
+            --exclude=.github \
+            --exclude=.env \
+            --exclude=.sshkeys \
+            --exclude=admin-login.txt \
+            --exclude=database/backup \
+            --exclude=storage/logs \
+            --exclude=storage/framework/cache \
+            --exclude=storage/framework/sessions \
+            --exclude=storage/framework/views \
+            -C "${{ github.workspace }}" \
             .
+          echo "ARCHIVE_PATH=$ARCHIVE" >> "$GITHUB_ENV"
 
       - name: Upload archive to server
         uses: appleboy/scp-action@v0.1.7
@@ -80,7 +83,7 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
-          source: deploy.tar.gz
+          source: /tmp/haskabd-deploy.tar.gz
           target: ${{ secrets.DEPLOY_PATH }}
 
       - name: Extract and activate release
