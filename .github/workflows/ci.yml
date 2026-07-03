@@ -69,6 +69,9 @@ jobs:
             echo "::error::Add GitHub secret SSH_PRIVATE_KEY or SSH_PASSWORD"
             missing=1
           fi
+          if [ -z "$SSH_PORT" ]; then
+            echo "::warning::SSH_PORT not set; defaulting to 22. cPanel hosts often use a custom SSH port."
+          fi
           if [ "$missing" -ne 0 ]; then
             echo "Add secrets at: https://github.com/${{ github.repository }}/settings/secrets/actions"
             exit 1
@@ -79,6 +82,7 @@ jobs:
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
 
       - name: Create deployment archive
         run: |
@@ -108,8 +112,9 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          passphrase: ${{ secrets.SSH_KEY_PASSPHRASE }}
           password: ${{ secrets.SSH_PASSWORD }}
-          port: 22
+          port: ${{ secrets.SSH_PORT || 22 }}
           source: haskabd-deploy.tar.gz
           target: ${{ secrets.DEPLOY_PATH }}
 
@@ -119,8 +124,9 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          passphrase: ${{ secrets.SSH_KEY_PASSPHRASE }}
           password: ${{ secrets.SSH_PASSWORD }}
-          port: 22
+          port: ${{ secrets.SSH_PORT || 22 }}
           script: |
             cd ${{ secrets.DEPLOY_PATH }}
             tar -xzf haskabd-deploy.tar.gz
