@@ -40,7 +40,13 @@ class FrontendController extends Controller
     public function index()
     {
         $generalsetting = GeneralSetting::where('status',1)->limit(1)->first();
-        // return "Welcome to Kenakatar.com";
+        if (!$generalsetting) {
+            $generalsetting = (object) [
+                'show_category_wise_products' => 0,
+                'show_all_products' => 0,
+            ];
+        }
+
         $frontcategory = Category::where(['status' => 1])
             ->select('id', 'name', 'image', 'slug', 'status')
             ->get();
@@ -119,7 +125,7 @@ class FrontendController extends Controller
         }
         
             
-        return view('frontEnd.layouts.pages.index', compact('sliders', 'frontcategory', 'hotdeal_top', 'hotdeal_bottom', 'homeproducts', 'sliderbottomads', 'footertopads','flas_sales','campaognads','reviews','all_products'));
+        return view('frontEnd.layouts.pages.index', compact('generalsetting', 'sliders', 'frontcategory', 'hotdeal_top', 'hotdeal_bottom', 'homeproducts', 'sliderbottomads', 'footertopads','flas_sales','campaognads','reviews','all_products'));
     }
 
     public function hotdeals(Request $request)
