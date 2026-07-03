@@ -59,81 +59,70 @@ jobs:
       - name: Verify deploy secrets
         run: |
           missing=0
-          for name in SSH_HOST SSH_USERNAME DEPLOY_PATH; do
+          for name in FTP_SERVER FTP_USERNAME FTP_PASSWORD; do
             if [ -z "${!name}" ]; then
               echo "::error::Missing GitHub secret: $name"
               missing=1
             fi
           done
-          if [ -z "$SSH_PRIVATE_KEY" ] && [ -z "$SSH_PASSWORD" ]; then
-            echo "::error::Add GitHub secret SSH_PRIVATE_KEY or SSH_PASSWORD"
-            missing=1
-          fi
-          if [ -z "$SSH_PORT" ]; then
-            echo "::warning::SSH_PORT not set; defaulting to 22. cPanel hosts often use a custom SSH port."
-          fi
           if [ "$missing" -ne 0 ]; then
             echo "Add secrets at: https://github.com/${{ github.repository }}/settings/secrets/actions"
             exit 1
           fi
         env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
-          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-          SSH_PORT: ${{ secrets.SSH_PORT }}
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
 
-      - name: Create deployment archive
-        run: |
-          TMP_ARCHIVE="/tmp/haskabd-deploy.tar.gz"
-          DEPLOY_ARCHIVE="${{ github.workspace }}/haskabd-deploy.tar.gz"
-          tar -czf "$TMP_ARCHIVE" \
-            --exclude=vendor \
-            --exclude=node_modules \
-            --exclude=.git \
-            --exclude=.github \
-            --exclude=.env \
-            --exclude=.sshkeys \
-            --exclude=admin-login.txt \
-            --exclude=database/backup \
-            --exclude=storage/logs \
-            --exclude=storage/framework/cache \
-            --exclude=storage/framework/sessions \
-            --exclude=storage/framework/views \
-            -C "${{ github.workspace }}" \
-            .
-          cp "$TMP_ARCHIVE" "$DEPLOY_ARCHIVE"
-          ls -lh "$DEPLOY_ARCHIVE"
-
-      - name: Upload archive to server
-        uses: appleboy/scp-action@v0.1.7
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          passphrase: ${{ secrets.SSH_KEY_PASSPHRASE }}
-          password: ${{ secrets.SSH_PASSWORD }}
-          port: ${{ secrets.SSH_PORT || 22 }}
-          source: haskabd-deploy.tar.gz
-          target: ${{ secrets.DEPLOY_PATH }}
+          php-version: "8.3"
+          extensions: mbstring, dom, fileinfo, mysql, gd, zip, bcmath
+          coverage: none
 
-      - name: Extract and activate release
-        uses: appleboy/ssh-action@v1.0.3
+      - name: Get composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache composer dependencies
+        uses: actions/cache@v4
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          passphrase: ${{ secrets.SSH_KEY_PASSPHRASE }}
-          password: ${{ secrets.SSH_PASSWORD }}
-          port: ${{ secrets.SSH_PORT || 22 }}
-          script: |
-            cd ${{ secrets.DEPLOY_PATH }}
-            tar -xzf haskabd-deploy.tar.gz
-            rm -f haskabd-deploy.tar.gz
-            composer install --no-dev --optimize-autoloader --no-interaction
-            php artisan migrate --force
-            php artisan config:cache
-            php artisan route:cache
-            php artisan view:cache
-            php artisan storage:link || true
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-prod-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-prod-
+
+      - name: Install production dependencies
+        run: composer install --no-dev --prefer-dist --no-progress --no-interaction --optimize-autoloader
+
+      - name: Deploy via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          port: 21
+          protocol: ftps
+          local-dir: ./
+          server-dir: ./
+          state-name: ftp-deploy
+          log-level: minimal
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/.github/**
+            **/node_modules/**
+            **/.env
+            **/.env.*
+            **/.sshkeys/**
+            **/admin-login.txt
+            **/database/backup/**
+            **/*.ppk
+            **/*.pub
+            **/*_openssh
+            **/__pycache__/**
+            **/tests/**
+            **/.phpunit.result.cache
+            **/phpunit.xml
+            **/convert_ppk.py
