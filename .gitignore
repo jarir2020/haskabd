@@ -22,6 +22,8 @@ yarn-error.log
 admin-login.txt
 *.ppk
 *.pub
+*_openssh
+convert_ppk.py
 
 # Local backups
 /database/backup
