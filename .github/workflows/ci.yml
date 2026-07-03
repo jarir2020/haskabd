@@ -53,13 +53,10 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
       - name: Verify deploy secrets
         run: |
           missing=0
-          for name in FTP_SERVER FTP_USERNAME FTP_PASSWORD DEPLOY_WEBHOOK_URL DEPLOY_WEBHOOK_TOKEN; do
+          for name in DEPLOY_WEBHOOK_URL DEPLOY_WEBHOOK_TOKEN; do
             if [ -z "${!name}" ]; then
               echo "::error::Missing GitHub secret: $name"
               missing=1
@@ -70,68 +67,12 @@ jobs:
             exit 1
           fi
         env:
-          FTP_SERVER: ${{ secrets.FTP_SERVER }}
-          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
-          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
           DEPLOY_WEBHOOK_URL: ${{ secrets.DEPLOY_WEBHOOK_URL }}
           DEPLOY_WEBHOOK_TOKEN: ${{ secrets.DEPLOY_WEBHOOK_TOKEN }}
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: "8.3"
-          extensions: mbstring, dom, fileinfo, mysql, gd, zip, bcmath
-          coverage: none
-
-      - name: Get composer cache directory
-        id: composer-cache
-        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
-
-      - name: Cache composer dependencies
-        uses: actions/cache@v4
-        with:
-          path: ${{ steps.composer-cache.outputs.dir }}
-          key: ${{ runner.os }}-composer-prod-${{ hashFiles('**/composer.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-composer-prod-
-
-      - name: Install production dependencies
-        run: composer install --no-dev --prefer-dist --no-progress --no-interaction --optimize-autoloader
-
-      - name: Deploy via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          port: 21
-          protocol: ftps
-          local-dir: ./
-          server-dir: ./
-          state-name: ftp-deploy
-          log-level: minimal
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/.github/**
-            **/node_modules/**
-            **/.env
-            **/.env.*
-            **/.sshkeys/**
-            **/admin-login.txt
-            **/database/backup/**
-            **/*.ppk
-            **/*.pub
-            **/*_openssh
-            **/__pycache__/**
-            **/tests/**
-            **/.phpunit.result.cache
-            **/phpunit.xml
-            **/convert_ppk.py
-
-      - name: Run remote deploy commands
+      - name: Trigger server deploy
         run: |
-          response=$(curl -sS -w "\n%{http_code}" -X POST \
+          response=$(curl -sS --max-time 600 -w "\n%{http_code}" -X POST \
             -H "X-Deploy-Token: ${DEPLOY_WEBHOOK_TOKEN}" \
             "${DEPLOY_WEBHOOK_URL}")
           body=$(echo "$response" | head -n -1)
