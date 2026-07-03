@@ -9,8 +9,13 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     respond(405, ['ok' => false, 'error' => 'Method not allowed']);
 }
 
-$basePath = __DIR__;
-$env = loadEnvFile($basePath . '/.env');
+$hookDir = __DIR__;
+$env = loadEnvFile($hookDir . '/.env');
+$basePath = resolveDeployBasePath($hookDir, $env);
+
+if (is_file($basePath . '/.env')) {
+    $env = array_merge($env, loadEnvFile($basePath . '/.env'));
+}
 
 $provided = (string) ($_SERVER['HTTP_X_DEPLOY_TOKEN'] ?? $_POST['token'] ?? '');
 $expected = (string) ($env['DEPLOY_TOKEN'] ?? '');
@@ -19,7 +24,7 @@ if ($expected === '' || !hash_equals($expected, $provided)) {
     respond(403, ['ok' => false, 'error' => 'Forbidden']);
 }
 
-$results = [];
+$results = ['deploy_path' => $basePath];
 $preservePaths = ['.env', 'public/uploads'];
 
 try {
@@ -78,6 +83,27 @@ function loadEnvFile(string $path): array
     }
 
     return $vars;
+}
+
+function resolveDeployBasePath(string $hookDir, array $env): string
+{
+    $configured = trim($env['DEPLOY_BASE_PATH'] ?? '');
+
+    if ($configured === '') {
+        return $hookDir;
+    }
+
+    if (str_starts_with($configured, '/')) {
+        return rtrim(str_replace('\\', '/', $configured), '/');
+    }
+
+    $resolved = realpath($hookDir . DIRECTORY_SEPARATOR . $configured);
+
+    if ($resolved === false) {
+        throw new RuntimeException('DEPLOY_BASE_PATH does not exist: ' . $configured);
+    }
+
+    return $resolved;
 }
 
 function isGitAvailable(): bool
