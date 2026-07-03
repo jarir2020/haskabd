@@ -82,7 +82,7 @@ jobs:
 
       - name: Create deployment archive
         run: |
-          ARCHIVE="/tmp/haskabd-deploy.tar.gz"
+          ARCHIVE="${{ github.workspace }}/haskabd-deploy.tar.gz"
           tar -czf "$ARCHIVE" \
             --exclude=vendor \
             --exclude=node_modules \
@@ -96,9 +96,10 @@ jobs:
             --exclude=storage/framework/cache \
             --exclude=storage/framework/sessions \
             --exclude=storage/framework/views \
+            --exclude=haskabd-deploy.tar.gz \
             -C "${{ github.workspace }}" \
             .
-          echo "ARCHIVE_PATH=$ARCHIVE" >> "$GITHUB_ENV"
+          ls -lh "$ARCHIVE"
 
       - name: Upload archive to server
         uses: appleboy/scp-action@v0.1.7
@@ -108,7 +109,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           password: ${{ secrets.SSH_PASSWORD }}
           port: 22
-          source: /tmp/haskabd-deploy.tar.gz
+          source: haskabd-deploy.tar.gz
           target: ${{ secrets.DEPLOY_PATH }}
 
       - name: Extract and activate release
