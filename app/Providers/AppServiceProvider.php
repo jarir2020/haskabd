@@ -41,6 +41,15 @@ class AppServiceProvider extends ServiceProvider
             return;
         }
 
+        try {
+            $this->shareApplicationData();
+        } catch (\Throwable $e) {
+            return;
+        }
+    }
+
+    private function shareApplicationData(): void
+    {
        $shurjopay = PaymentGateway::where(['status' => 1, 'type' => 'shurjopay'])->first();
         if ($shurjopay) {
             
@@ -97,7 +106,8 @@ class AppServiceProvider extends ServiceProvider
     private function databaseIsReady(): bool
     {
         try {
-            return Schema::hasTable('payment_gateways');
+            return Schema::hasTable('payment_gateways')
+                && Schema::hasColumn('payment_gateways', 'status');
         } catch (\Throwable $e) {
             return false;
         }
