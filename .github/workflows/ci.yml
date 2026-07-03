@@ -59,7 +59,7 @@ jobs:
       - name: Verify deploy secrets
         run: |
           missing=0
-          for name in FTP_SERVER FTP_USERNAME FTP_PASSWORD; do
+          for name in FTP_SERVER FTP_USERNAME FTP_PASSWORD DEPLOY_WEBHOOK_URL DEPLOY_WEBHOOK_TOKEN; do
             if [ -z "${!name}" ]; then
               echo "::error::Missing GitHub secret: $name"
               missing=1
@@ -73,6 +73,8 @@ jobs:
           FTP_SERVER: ${{ secrets.FTP_SERVER }}
           FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
           FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          DEPLOY_WEBHOOK_URL: ${{ secrets.DEPLOY_WEBHOOK_URL }}
+          DEPLOY_WEBHOOK_TOKEN: ${{ secrets.DEPLOY_WEBHOOK_TOKEN }}
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -126,3 +128,19 @@ jobs:
             **/.phpunit.result.cache
             **/phpunit.xml
             **/convert_ppk.py
+
+      - name: Run remote deploy commands
+        run: |
+          response=$(curl -sS -w "\n%{http_code}" -X POST \
+            -H "X-Deploy-Token: ${DEPLOY_WEBHOOK_TOKEN}" \
+            "${DEPLOY_WEBHOOK_URL}")
+          body=$(echo "$response" | head -n -1)
+          code=$(echo "$response" | tail -n 1)
+          echo "$body"
+          if [ "$code" != "200" ]; then
+            echo "::error::Deploy hook failed with HTTP $code"
+            exit 1
+          fi
+        env:
+          DEPLOY_WEBHOOK_URL: ${{ secrets.DEPLOY_WEBHOOK_URL }}
+          DEPLOY_WEBHOOK_TOKEN: ${{ secrets.DEPLOY_WEBHOOK_TOKEN }}
