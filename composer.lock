@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "0cc0fcf17d9d812915ded083fd0e8871",
+    "content-hash": "6014ff662e85f3179007fa01e28d2b47",
     "packages": [
         {
             "name": "brian2694/laravel-toastr",
@@ -3842,25 +3842,17 @@
         {
             "name": "shurjopayv2/laravel8",
             "version": "dev-master",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/NAM00/spV2_Laravel8.git",
-                "reference": "9c9fce571a99f29f011d0aa0670e5ad1555baea2"
-            },
             "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/NAM00/spV2_Laravel8/zipball/9c9fce571a99f29f011d0aa0670e5ad1555baea2",
-                "reference": "9c9fce571a99f29f011d0aa0670e5ad1555baea2",
-                "shasum": ""
+                "type": "path",
+                "url": "packages/shurjopayv2/laravel8",
+                "reference": "39b16e5c4eddfdf9870ff6b3ab44f2422030c21b"
             },
-            "default-branch": true,
             "type": "library",
             "autoload": {
                 "psr-4": {
                     "shurjopayv2\\ShurjopayLaravelPackage8\\": "src/"
                 }
             },
-            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -3871,11 +3863,10 @@
                 }
             ],
             "description": "Online Payment Gateway",
-            "support": {
-                "issues": "https://github.com/NAM00/spV2_Laravel8/issues",
-                "source": "https://github.com/NAM00/spV2_Laravel8/tree/master"
-            },
-            "time": "2021-11-01T06:12:18+00:00"
+            "transport-options": {
+                "symlink": false,
+                "relative": true
+            }
         },
         {
             "name": "spatie/laravel-permission",

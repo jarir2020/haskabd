@@ -4,6 +4,15 @@
     "description": "The Laravel Framework.",
     "keywords": ["framework", "laravel"],
     "license": "MIT",
+    "repositories": [
+        {
+            "type": "path",
+            "url": "packages/shurjopayv2/laravel8",
+            "options": {
+                "symlink": false
+            }
+        }
+    ],
     "require": {
         "php": "^8.0.2",
         "brian2694/laravel-toastr": "^5.57",
@@ -16,7 +25,7 @@
         "laravelcollective/html": "^6.3",
         "maatwebsite/excel": "^3.1",
         "olimortimer/laravelshoppingcart": "^6.0",
-        "shurjopayv2/laravel8": "dev-master",
+        "shurjopayv2/laravel8": "@dev",
         "spatie/laravel-permission": "^5.7"
     },
     "require-dev": {
