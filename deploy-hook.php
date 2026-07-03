@@ -90,20 +90,31 @@ function resolveDeployBasePath(string $hookDir, array $env): string
     $configured = trim($env['DEPLOY_BASE_PATH'] ?? '');
 
     if ($configured === '') {
-        return $hookDir;
+        return isValidLaravelRoot($hookDir) ? $hookDir : throw new RuntimeException(
+            'deploy-hook.php is not inside a Laravel app. Remove DEPLOY_BASE_PATH from .env or move the hook into the app root.'
+        );
     }
 
     if (str_starts_with($configured, '/')) {
-        return rtrim(str_replace('\\', '/', $configured), '/');
+        $candidate = rtrim(str_replace('\\', '/', $configured), '/');
+    } else {
+        $resolved = realpath($hookDir . DIRECTORY_SEPARATOR . $configured);
+        if ($resolved === false) {
+            throw new RuntimeException('DEPLOY_BASE_PATH does not exist: ' . $configured);
+        }
+        $candidate = $resolved;
     }
 
-    $resolved = realpath($hookDir . DIRECTORY_SEPARATOR . $configured);
-
-    if ($resolved === false) {
-        throw new RuntimeException('DEPLOY_BASE_PATH does not exist: ' . $configured);
+    if (!isValidLaravelRoot($candidate)) {
+        throw new RuntimeException('DEPLOY_BASE_PATH is not a Laravel app root: ' . $candidate);
     }
 
-    return $resolved;
+    return $candidate;
+}
+
+function isValidLaravelRoot(string $path): bool
+{
+    return is_file($path . '/composer.json') && is_file($path . '/bootstrap/app.php');
 }
 
 function isGitAvailable(): bool
@@ -394,8 +405,12 @@ function runComposerInstall(string $basePath): array
     $commands = [
         "cd {$escapedBase} && composer install --no-dev --optimize-autoloader --no-interaction 2>&1",
         "cd {$escapedBase} && /usr/local/bin/composer install --no-dev --optimize-autoloader --no-interaction 2>&1",
+        "cd {$escapedBase} && /opt/cpanel/composer/bin/composer install --no-dev --optimize-autoloader --no-interaction 2>&1",
+        "cd {$escapedBase} && /usr/local/bin/ea-php83 /usr/local/bin/composer install --no-dev --optimize-autoloader --no-interaction 2>&1",
         "cd {$escapedBase} && php composer.phar install --no-dev --optimize-autoloader --no-interaction 2>&1",
     ];
+
+    $lastOutput = '';
 
     foreach ($commands as $command) {
         if (runCommand($command, $output, $code) && $code === 0) {
@@ -404,11 +419,20 @@ function runComposerInstall(string $basePath): array
                 'output' => trim($output),
             ];
         }
+
+        $lastOutput = trim($output);
+    }
+
+    if (is_file($basePath . '/vendor/autoload.php')) {
+        return [
+            'exit_code' => 0,
+            'output' => 'Composer command failed, but vendor/autoload.php is available.',
+        ];
     }
 
     return [
         'exit_code' => 1,
-        'output' => 'Composer command could not be executed on the server.',
+        'output' => $lastOutput !== '' ? $lastOutput : 'Composer command could not be executed on the server.',
     ];
 }
 
@@ -424,23 +448,32 @@ function runArtisanTasks(string $basePath): array
     $kernel->bootstrap();
 
     $commands = [
-        ['migrate', ['--force' => true]],
-        ['config:clear', []],
-        ['config:cache', []],
-        ['route:cache', []],
-        ['view:cache', []],
-        ['storage:link', []],
+        ['migrate', ['--force' => true], false],
+        ['config:clear', [], false],
+        ['config:cache', [], false],
+        ['route:cache', [], true],
+        ['view:cache', [], true],
+        ['storage:link', [], true],
     ];
 
     $results = [];
 
-    foreach ($commands as [$command, $arguments]) {
+    foreach ($commands as [$command, $arguments, $optional]) {
         try {
             $exitCode = Illuminate\Support\Facades\Artisan::call($command, $arguments);
             $output = trim(Illuminate\Support\Facades\Artisan::output());
 
             if ($command === 'storage:link' && $exitCode !== 0 && stripos($output, 'already exists') !== false) {
                 $exitCode = 0;
+            }
+
+            if ($optional && $exitCode !== 0) {
+                if ($command === 'route:cache') {
+                    Illuminate\Support\Facades\Artisan::call('route:clear');
+                }
+
+                $exitCode = 0;
+                $output = 'skipped: ' . ($output !== '' ? $output : $command . ' failed');
             }
 
             $results[$command] = [
@@ -454,6 +487,16 @@ function runArtisanTasks(string $basePath): array
             if ($command === 'storage:link' && stripos($message, 'already exists') !== false) {
                 $exitCode = 0;
                 $message = 'link already exists';
+            } elseif ($optional) {
+                if ($command === 'route:cache') {
+                    try {
+                        Illuminate\Support\Facades\Artisan::call('route:clear');
+                    } catch (Throwable) {
+                    }
+                }
+
+                $exitCode = 0;
+                $message = 'skipped: ' . $message;
             }
 
             $results[$command] = [
