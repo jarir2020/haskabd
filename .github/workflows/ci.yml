@@ -47,12 +47,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-composer-
 
+      - name: Prepare environment
+        run: cp .env.example .env
+
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress --no-interaction
 
       - name: Prepare Laravel application
         run: |
-          cp .env.example .env
           php artisan key:generate
           php artisan config:clear
 

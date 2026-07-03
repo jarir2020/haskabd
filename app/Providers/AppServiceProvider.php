@@ -14,6 +14,7 @@ use App\Models\EcomPixel;
 use App\Models\GoogleTagManager;
 use App\Models\Order;
 use App\Models\PaymentGateway;
+use Illuminate\Support\Facades\Schema;
 use Config;
 use Session;
 
@@ -36,6 +37,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
+        if (!$this->databaseIsReady()) {
+            return;
+        }
+
        $shurjopay = PaymentGateway::where(['status' => 1, 'type' => 'shurjopay'])->first();
         if ($shurjopay) {
             
@@ -87,5 +92,14 @@ class AppServiceProvider extends ServiceProvider
         
         $gtm_code = GoogleTagManager::where('status',1)->get();
         view()->share('gtm_code',$gtm_code);
+    }
+
+    private function databaseIsReady(): bool
+    {
+        try {
+            return Schema::hasTable('payment_gateways');
+        } catch (\Throwable $e) {
+            return false;
+        }
     }
 }
